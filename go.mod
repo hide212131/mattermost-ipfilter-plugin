@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-starter-template
+module github.com/hide212131/mattermost-ipfilter-plugin
 
 go 1.16
 
