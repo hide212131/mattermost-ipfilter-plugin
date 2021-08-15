@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -22,7 +22,23 @@ type Plugin struct {
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, world!")
+	addr := r.RemoteAddr
+	AllowedIps := p.configuration.AllowedIps
+	if strings.TrimSpace(AllowedIps) != "" {
+		ips := strings.Split(AllowedIps, ",")
+		for _, s := range ips {
+			text := strings.TrimRight(strings.TrimSpace(s), "*")
+			if strings.HasPrefix(addr, text) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+				p.API.LogInfo("Allowed from " + addr + " matching prefix " + s)
+				return
+			}
+		}
+	}
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte("NG"))
+	p.API.LogInfo("Blocked from " + addr)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
