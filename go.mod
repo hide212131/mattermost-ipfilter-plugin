@@ -1,4 +1,4 @@
-module github.com/hide212131/mattermost-ipfilter-plugin
+module github.com/hide212131/mattermost-plugin-attachment-filter
 
 go 1.16
 
