@@ -22,7 +22,7 @@ type Plugin struct {
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	addr := r.RemoteAddr
+	addr := c.IpAddress
 	AllowedIps := p.configuration.AllowedIps
 	if strings.TrimSpace(AllowedIps) != "" {
 		ips := strings.Split(AllowedIps, ",")
