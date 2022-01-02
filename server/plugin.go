@@ -1,10 +1,11 @@
 package main
 
 import (
-	"net/http"
-	"strings"
+	"io"
+	"regexp"
 	"sync"
 
+	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
@@ -20,25 +21,66 @@ type Plugin struct {
 	configuration *configuration
 }
 
-// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
-func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	addr := c.IpAddress
-	AllowedIps := p.configuration.AllowedIps
-	if strings.TrimSpace(AllowedIps) != "" {
-		ips := strings.Split(AllowedIps, ",")
-		for _, s := range ips {
-			text := strings.TrimRight(strings.TrimSpace(s), "*")
-			if strings.HasPrefix(addr, text) {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
-				p.API.LogInfo("Allowed from " + addr + " matching prefix " + s)
-				return
-			}
-		}
+func (p *Plugin) FileWillBeUploaded(c *plugin.Context, info *model.FileInfo, reader io.Reader, output io.Writer) (*model.FileInfo, string) {
+	policy := p.getConfiguration().AttachmentPolicy
+
+	users, err := p.GetChannelUsers(info)
+	if err != "" {
+		p.API.LogError(
+			"Failed to query GetChannelMembers FileWillBeUploaded",
+			"error", err,
+		)
+		return nil, "error"
 	}
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("NG"))
-	p.API.LogInfo("Blocked from " + addr)
+	attachmentInfo := new(AttachmentInfo)
+	attachmentInfo.ChannelUsers = users
+	attachmentInfo.FileInfo = info
+	attachmentInfo.Context = c
+	result, err := apply(policy, attachmentInfo)
+	if err != "" {
+		p.API.LogError(
+			"Failed to query GetChannelMembers FileWillBeUploaded",
+			"error", err,
+		)
+		return nil, err
+	}
+	if result {
+		return info, ""
+	} else {
+		return nil, "File uploads were not allowed by policy definition."
+	}
 }
 
-// See https://developers.mattermost.com/extend/plugins/server/reference/
+// func (p *Plugin) GetChannelUsers(info *model.FileInfo) ([]*model.User, *model.AppError) {
+func (p *Plugin) GetChannelUsers(info *model.FileInfo) ([]*model.User, string) {
+	path := info.Path
+	r := regexp.MustCompile("^.+/channels/([^/]+)/.+$")
+	fss := r.FindStringSubmatch(path)
+	channelID := fss[1]
+
+	ms, err := p.API.GetChannelMembers(channelID, 0, 1000)
+	if err != nil {
+		p.API.LogError(
+			"Failed to query GetChannelMembers FileWillBeUploaded",
+			"error", err.Error(),
+		)
+		return nil, err.Error()
+	}
+
+	members := ([]model.ChannelMember)(*ms)
+	// users := make([]*model.User, len(members))
+	users := make([]*model.User, len(members))
+	for i, member := range members {
+		user, err2 := p.API.GetUser(member.UserId)
+		if err2 != nil {
+			p.API.LogError(
+				"Failed to query GetUser FileWillBeUploaded",
+				"error", err2.Error(),
+			)
+			return nil, err2.Error()
+		}
+		users[i] = user
+	}
+
+	return users, ""
+}
