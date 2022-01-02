@@ -1,0 +1,40 @@
+{
+  "and": [
+    {
+      "reduce": [
+        {
+          "map": [
+            { "var": "ChannelUsers" },
+            { "in": [{ "var": "username" }, ["Red", "White", "Black"]] }
+          ]
+        },
+        { "or": [{ "var": "current" }, { "var": "accumulator" }] },
+        false
+      ]
+    },
+    {
+      "reduce": [
+        {
+          "map": [
+            ["^10\\.", "^192\\.168", "::1"],
+            { "match": [{ "var": "Context.IpAddress" }, { "var": "" }] }
+          ]
+        },
+        { "or": [{ "var": "current" }, { "var": "accumulator" }] },
+        false
+      ]
+    },
+    {
+      "reduce": [
+        {
+          "map": [
+            [".+\\.jpg$", ".+\\.png$"],
+            { "match": [{ "var": "FileInfo.name" }, { "var": "" }] }
+          ]
+        },
+        { "or": [{ "var": "current" }, { "var": "accumulator" }] },
+        false
+      ]
+    }
+  ]
+}

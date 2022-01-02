@@ -6,7 +6,7 @@
     "support_url": "https://github.com/hide212131/mattermost-plugin-attachment-filter",
     "release_notes_url": "https://github.com/hide212131/mattermost-plugin-attachment-filter",
     "icon_path": "assets/starter-template-icon.svg",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
@@ -16,17 +16,14 @@
             "windows-amd64": "server/dist/plugin-windows-amd64.exe"
         }
     },
-    "webapp": {
-        "bundle_path": "webapp/dist/main.js"
-    },
     "settings_schema": {
         "header": "",
         "footer": "",
         "settings": [{
-          "key": "AllowedIps",
-          "display_name": "Allowed IP Addresses",
-          "type": "text",
-          "help_text": "Specify the IP address to be Allowed, using forward matching and comma-separated characters, such as \"192.168.\\*, 127.\\*\".",
+          "key": "AttachmentPolicy",
+          "display_name": "Policies written in JSON logic",
+          "type": "longtext",
+          "help_text": "Please describe it in [JSON logic](https://jsonlogic.com/) so that it returns true for the conditions of the files you want to allow.",
           "default": ""
         }]
     }
