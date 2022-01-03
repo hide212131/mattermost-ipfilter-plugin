@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -35,29 +36,37 @@ func initialize() {
 	initialized = true
 }
 
-func apply(policy string, info *AttachmentInfo) (bool, string) {
+func apply(policy string, info *AttachmentInfo) (bool, error) {
 	if !initialized {
 		initialize()
 	}
 	logic := strings.NewReader(policy)
-	jsonb, err := json.Marshal(info)
+	json, err := infoToString(info)
 	if err != nil {
-		return false, "The JSON format of the policy definition is incorrect."
+		return false, err
 	}
-	data := strings.NewReader(string(jsonb))
+	data := strings.NewReader(json)
 	var result bytes.Buffer
 	err = jsonlogic.Apply(logic, data, &result)
 	if err == nil {
 		r := result.String()
 		switch r {
 		case "true\n":
-			return true, ""
+			return true, nil
 		case "false\n":
-			return false, ""
+			return false, nil
 		default:
-			return false, "The JSON format of the policy definition does not return true or false."
+			return false, fmt.Errorf("the JSON format of the policy definition does not return true or false: %s", r)
 		}
 	} else {
-		return false, err.Error()
+		return false, err
 	}
+}
+
+func infoToString(info *AttachmentInfo) (string, error) {
+	jsonb, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonb), nil
 }
