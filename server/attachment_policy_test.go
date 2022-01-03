@@ -34,6 +34,6 @@ func TestAttachmentPolicy(t *testing.T) {
 	}
 
 	result, errmsg := apply(policy, &info)
-	assert.Equal(t, "", errmsg)
+	assert.Nil(t, errmsg)
 	assert.True(t, result)
 }
